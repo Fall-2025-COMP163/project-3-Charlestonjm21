@@ -152,15 +152,23 @@ def use_item(character, item_id, item_data):
     # Apply effect to character
     # Remove item from inventory
     
-   # Check if item exists
+   # Check item exists
     if not has_item(character, item_id):
         raise ItemNotFoundError(f"Item '{item_id}' not in inventory")
     
-    # Get item effect
+    # ✅ Check item is consumable type
+    item_type = item_data.get('type', '')
+    if item_type != 'consumable':
+        raise InvalidItemTypeError(
+            f"Cannot use '{item_id}': item type is '{item_type}', "
+            f"not 'consumable'. Only consumable items can be used."
+        )
+    
+    # Apply effect
     if 'effect' in item_data:
         effect = item_data['effect']
         
-        # Parse effect if it's a string (format: "stat:value")
+        # Parse string format: "stat:value"
         if isinstance(effect, str):
             try:
                 stat_name, value_str = effect.split(':')
@@ -169,12 +177,12 @@ def use_item(character, item_id, item_data):
             except (ValueError, IndexError):
                 raise InvalidItemTypeError(f"Invalid effect format: {effect}")
         
-        # Or apply if it's a dict
+        # Parse dict format: {'stat': value}
         elif isinstance(effect, dict):
             for stat_name, value in effect.items():
                 apply_stat_effect(character, stat_name, value)
     
-    # Remove from inventory
+    # Remove used item
     character['inventory'].remove(item_id)
     
     return f"Used {item_id}"

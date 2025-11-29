@@ -97,31 +97,44 @@ def complete_quest(character, quest_id, quest_data_dict):
     # TODO: Implement quest completion
     # Check quest exists and is active, award rewards, move to completed
     
-    if quest_id not in quest_data_dict:
-        raise QuestNotFoundError(f"Quest '{quest_id}' not found")
-    
-    quest = quest_data_dict[quest_id]
-    
+    # Check if quest is active
     if quest_id not in character.get('active_quests', []):
         raise QuestNotActiveError(f"Quest '{quest_id}' is not active")
     
+    # Get quest data
+    if quest_id not in quest_data_dict:
+        raise QuestNotFoundError(f"Quest '{quest_id}' not found in quest data")
+    
+    quest = quest_data_dict[quest_id]
+    
+    # Get rewards
     xp_reward = quest.get('reward_xp', 0)
     gold_reward = quest.get('reward_gold', 0)
+    quest_title = quest.get('title', quest_id)
     
-    character['gold'] += gold_reward
+    # Award XP (causes leveling if needed)
+    if xp_reward > 0:
+        import character_manager
+        character_manager.gain_experience(character, xp_reward)
+    
+    # Award gold
+    if gold_reward > 0:
+        import character_manager
+        character_manager.add_gold(character, gold_reward)
+    
+    # Move from active to completed
     character['active_quests'].remove(quest_id)
-    
     if 'completed_quests' not in character:
         character['completed_quests'] = []
     character['completed_quests'].append(quest_id)
     
+    # Return result
     return {
         'quest_id': quest_id,
-        'quest_title': quest.get('title', quest_id),
+        'quest_title': quest_title,
         'xp_reward': xp_reward,
         'gold_reward': gold_reward
     }
-
 
 def abandon_quest(character, quest_id):
     """

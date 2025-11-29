@@ -152,24 +152,32 @@ def use_item(character, item_id, item_data):
     # Apply effect to character
     # Remove item from inventory
     
-    # Check if character has the item
+   # Check if item exists
     if not has_item(character, item_id):
         raise ItemNotFoundError(f"Item '{item_id}' not in inventory")
     
-    # Check if item type is consumable
-    if item_data.get('type') != 'consumable':
-        raise InvalidItemTypeError(f"Item '{item_id}' is not consumable")
+    # Get item effect
+    if 'effect' in item_data:
+        effect = item_data['effect']
+        
+        # Parse effect if it's a string (format: "stat:value")
+        if isinstance(effect, str):
+            try:
+                stat_name, value_str = effect.split(':')
+                value = int(value_str)
+                apply_stat_effect(character, stat_name, value)
+            except (ValueError, IndexError):
+                raise InvalidItemTypeError(f"Invalid effect format: {effect}")
+        
+        # Or apply if it's a dict
+        elif isinstance(effect, dict):
+            for stat_name, value in effect.items():
+                apply_stat_effect(character, stat_name, value)
     
-    # Parse effect
-    effect = item_data.get('effect', {})
-    if isinstance(effect, dict):
-        for stat_name, value in effect.items():
-            apply_stat_effect(character, stat_name, value)
+    # Remove from inventory
+    character['inventory'].remove(item_id)
     
-    # Remove item from inventory
-    remove_item_from_inventory(character, item_id)
-    
-    return f"Used {item_data.get('name', item_id)}!"
+    return f"Used {item_id}"
 
 
 def equip_weapon(character, item_id, item_data):
@@ -199,31 +207,48 @@ def equip_weapon(character, item_id, item_data):
     # Store equipped_weapon in character dictionary
     # Remove item from inventory
     
-    # Check if character has the item
+    # Check item exists
     if not has_item(character, item_id):
         raise ItemNotFoundError(f"Item '{item_id}' not in inventory")
     
-    # Check if item type is weapon
+    # Check it's a weapon
     if item_data.get('type') != 'weapon':
-        raise InvalidItemTypeError(f"Item '{item_id}' is not a weapon")
+        raise InvalidItemTypeError(f"'{item_id}' is not a weapon")
     
-    # Unequip current weapon if exists
-    if 'equipped_weapon' in character and character['equipped_weapon'] is not None:
-        unequip_weapon(character)
+    # Unequip current weapon if any
+    if character.get('equipped_weapon'):
+        old_weapon = character['equipped_weapon']
+        try:
+            unequip_weapon(character)
+        except InventoryFullError:
+            # Inventory full, can't unequip
+            raise InventoryFullError("Cannot unequip: inventory full")
     
-    # Parse effect and apply
-    effect = item_data.get('effect', {})
-    if isinstance(effect, dict):
-        for stat_name, value in effect.items():
-            apply_stat_effect(character, stat_name, value)
+    # Remove from inventory
+    character['inventory'].remove(item_id)
     
-    # Store equipped weapon
+    # Apply weapon bonus
+    if 'effect' in item_data:
+        effect = item_data['effect']
+        
+        # Parse effect if it's a string (format: "stat:value")
+        if isinstance(effect, str):
+            try:
+                stat_name, value_str = effect.split(':')
+                value = int(value_str)
+                character[stat_name] = character.get(stat_name, 0) + value
+            except (ValueError, IndexError):
+                raise InvalidItemTypeError(f"Invalid effect format: {effect}")
+        
+        # Or apply if it's a dict
+        elif isinstance(effect, dict):
+            for stat_name, value in effect.items():
+                character[stat_name] = character.get(stat_name, 0) + value
+    
+    # Set equipped weapon
     character['equipped_weapon'] = item_id
     
-    # Remove item from inventory
-    remove_item_from_inventory(character, item_id)
-    
-    return f"Equipped {item_data.get('name', item_id)}!"
+    return f"Equipped {item_id}"
 
 
 def equip_armor(character, item_id, item_data):

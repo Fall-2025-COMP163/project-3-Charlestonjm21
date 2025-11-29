@@ -1,6 +1,6 @@
 """
 COMP 163 - Project 3: Quest Chronicles
-Game Data Module - Starter Code
+Game Data Module - Complete Implementation
 
 Name: Charlestone Mayenga
 
@@ -36,12 +36,6 @@ def load_quests(filename="data/quests.txt"):
     Returns: Dictionary of quests {quest_id: quest_data_dict}
     Raises: MissingDataFileError, InvalidDataFormatError, CorruptedDataError
     """
-    # TODO: Implement this function
-    # Must handle:
-    # - FileNotFoundError → raise MissingDataFileError
-    # - Invalid format → raise InvalidDataFormatError
-    # - Corrupted/unreadable data → raise CorruptedDataError
-    
     # Check if file exists
     if not os.path.exists(filename):
         raise MissingDataFileError(f"Quest file not found: {filename}")
@@ -95,9 +89,6 @@ def load_items(filename="data/items.txt"):
     Returns: Dictionary of items {item_id: item_data_dict}
     Raises: MissingDataFileError, InvalidDataFormatError, CorruptedDataError
     """
-    # TODO: Implement this function
-    # Must handle same exceptions as load_quests
-    
     # Check if file exists
     if not os.path.exists(filename):
         raise MissingDataFileError(f"Item file not found: {filename}")
@@ -136,6 +127,10 @@ def load_items(filename="data/items.txt"):
     return items
 
 
+# ============================================================================
+# VALIDATION FUNCTIONS
+# ============================================================================
+
 def validate_quest_data(quest_dict):
     """
     Validate that quest dictionary has all required fields
@@ -146,10 +141,6 @@ def validate_quest_data(quest_dict):
     Returns: True if valid
     Raises: InvalidDataFormatError if missing required fields
     """
-    # TODO: Implement validation
-    # Check that all required keys exist
-    # Check that numeric values are actually numbers
-    
     required_fields = {
         'quest_id': str,
         'title': str,
@@ -183,16 +174,18 @@ def validate_item_data(item_dict):
     Required fields: item_id, name, type, effect, cost, description
     Valid types: weapon, armor, consumable
     
+    Effect can be:
+    - Dictionary format: {'stat_name': value} e.g. {'health': 20}
+    - String format: 'stat_name:value' e.g. 'health:20'
+    
     Returns: True if valid
     Raises: InvalidDataFormatError if missing required fields or invalid type
     """
-    # TODO: Implement validation
-    
     required_fields = {
         'item_id': str,
         'name': str,
         'type': str,
-        'effect': dict,
+        'effect': (str, dict),  # Accept both string and dict formats
         'cost': int,
         'description': str
     }
@@ -204,20 +197,148 @@ def validate_item_data(item_dict):
             raise InvalidDataFormatError(f"Missing required field: {field}")
         
         # Check field type
-        if not isinstance(item_dict[field], field_type):
-            raise InvalidDataFormatError(
-                f"Invalid type for field '{field}': expected {field_type.__name__}, "
-                f"got {type(item_dict[field]).__name__}"
-            )
+        # Handle tuple of types (allows multiple types)
+        if isinstance(field_type, tuple):
+            if not isinstance(item_dict[field], field_type):
+                type_names = " or ".join(t.__name__ for t in field_type)
+                raise InvalidDataFormatError(
+                    f"Invalid type for field '{field}': expected {type_names}, "
+                    f"got {type(item_dict[field]).__name__}"
+                )
+        else:
+            if not isinstance(item_dict[field], field_type):
+                raise InvalidDataFormatError(
+                    f"Invalid type for field '{field}': expected {field_type.__name__}, "
+                    f"got {type(item_dict[field]).__name__}"
+                )
     
     # Validate item type
-    valid_types = {'weapon', 'armor', 'consumable'}
-    if item_dict['type'] not in valid_types:
+    valid_item_types = ['weapon', 'armor', 'consumable']
+    if item_dict['type'] not in valid_item_types:
         raise InvalidDataFormatError(
-            f"Invalid item type: {item_dict['type']}. Must be one of {valid_types}"
+            f"Invalid item type: {item_dict['type']}. "
+            f"Must be one of: {', '.join(valid_item_types)}"
         )
     
     return True
+
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+def parse_quest_block(lines):
+    """
+    Parse a block of lines into a quest dictionary
+    
+    Args:
+        lines: List of strings representing one quest
+    
+    Returns: Dictionary with quest data
+    Raises: InvalidDataFormatError if parsing fails
+    """
+    quest = {}
+    
+    try:
+        for line in lines:
+            line = line.strip()
+            
+            # Skip empty lines
+            if not line:
+                continue
+            
+            # Check for colon separator
+            if ':' not in line:
+                raise InvalidDataFormatError(f"Malformed line in quest data: {line}")
+            
+            # Split on colon and strip whitespace
+            key, value = line.split(':', 1)
+            key = key.strip().lower()
+            value = value.strip()
+            
+            # Parse different field types
+            if key == 'quest_id':
+                quest['quest_id'] = value
+            elif key == 'title':
+                quest['title'] = value
+            elif key == 'description':
+                quest['description'] = value
+            elif key == 'reward_xp':
+                quest['reward_xp'] = int(value)
+            elif key == 'reward_gold':
+                quest['reward_gold'] = int(value)
+            elif key == 'required_level':
+                quest['required_level'] = int(value)
+            elif key == 'prerequisite':
+                quest['prerequisite'] = value
+            else:
+                raise InvalidDataFormatError(f"Unknown field in quest: {key}")
+    
+    except ValueError as e:
+        raise InvalidDataFormatError(f"Could not convert value to correct type: {e}")
+    except InvalidDataFormatError:
+        raise
+    except Exception as e:
+        raise InvalidDataFormatError(f"Error parsing quest block: {e}")
+    
+    return quest
+
+
+def parse_item_block(lines):
+    """
+    Parse a block of lines into an item dictionary
+    
+    Args:
+        lines: List of strings representing one item
+    
+    Returns: Dictionary with item data
+    Raises: InvalidDataFormatError if parsing fails
+    """
+    item = {}
+    
+    try:
+        for line in lines:
+            line = line.strip()
+            
+            # Skip empty lines
+            if not line:
+                continue
+            
+            # Check for colon separator
+            if ':' not in line:
+                raise InvalidDataFormatError(f"Malformed line in item data: {line}")
+            
+            # Split on colon and strip whitespace
+            key, value = line.split(':', 1)
+            key = key.strip().lower()
+            value = value.strip()
+            
+            # Parse different field types
+            if key == 'item_id':
+                item['item_id'] = value
+            elif key == 'name':
+                item['name'] = value
+            elif key == 'type':
+                item['type'] = value.lower()
+            elif key == 'effect':
+                # Keep effect as STRING format for now
+                # This allows both "stat:value" and conversion to dict later
+                item['effect'] = value
+            elif key == 'cost':
+                item['cost'] = int(value)
+            elif key == 'description':
+                item['description'] = value
+            else:
+                raise InvalidDataFormatError(f"Unknown field in item: {key}")
+    
+    except ValueError as e:
+        raise InvalidDataFormatError(f"Could not convert value to correct type: {e}")
+    except InvalidDataFormatError:
+        raise
+    except Exception as e:
+        raise InvalidDataFormatError(f"Error parsing item block: {e}")
+    
+    return item
 
 
 def create_default_data_files():
@@ -225,11 +346,6 @@ def create_default_data_files():
     Create default data files if they don't exist
     This helps with initial setup and testing
     """
-    # TODO: Implement this function
-    # Create data/ directory if it doesn't exist
-    # Create default quests.txt and items.txt files
-    # Handle any file permission errors appropriately
-    
     # Create data directory if needed
     if not os.path.exists("data"):
         try:
@@ -316,132 +432,6 @@ DESCRIPTION: Forged from real dragon scales. Extremely protective."""
         except Exception as e:
             print(f"Warning: Could not create default items file: {e}")
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
-
-def parse_quest_block(lines):
-    """
-    Parse a block of lines into a quest dictionary
-    
-    Args:
-        lines: List of strings representing one quest
-    
-    Returns: Dictionary with quest data
-    Raises: InvalidDataFormatError if parsing fails
-    """
-    # TODO: Implement parsing logic
-    # Split each line on ": " to get key-value pairs
-    # Convert numeric strings to integers
-    # Handle parsing errors gracefully
-    
-    quest = {}
-    
-    try:
-        for line in lines:
-            line = line.strip()
-            
-            # Skip empty lines
-            if not line:
-                continue
-            
-            # Check for colon separator
-            if ':' not in line:
-                raise InvalidDataFormatError(f"Malformed line in quest data: {line}")
-            
-            # Split on colon and strip whitespace
-            key, value = line.split(':', 1)
-            key = key.strip().lower()
-            value = value.strip()
-            
-            # Parse different field types
-            if key == 'quest_id':
-                quest['quest_id'] = value
-            elif key == 'title':
-                quest['title'] = value
-            elif key == 'description':
-                quest['description'] = value
-            elif key == 'reward_xp':
-                quest['reward_xp'] = int(value)
-            elif key == 'reward_gold':
-                quest['reward_gold'] = int(value)
-            elif key == 'required_level':
-                quest['required_level'] = int(value)
-            elif key == 'prerequisite':
-                quest['prerequisite'] = value
-            else:
-                raise InvalidDataFormatError(f"Unknown field in quest: {key}")
-    
-    except ValueError as e:
-        raise InvalidDataFormatError(f"Could not convert value to correct type: {e}")
-    except InvalidDataFormatError:
-        raise
-    except Exception as e:
-        raise InvalidDataFormatError(f"Error parsing quest block: {e}")
-    
-    return quest
-
-
-def parse_item_block(lines):
-    """
-    Parse a block of lines into an item dictionary
-    
-    Args:
-        lines: List of strings representing one item
-    
-    Returns: Dictionary with item data
-    Raises: InvalidDataFormatError if parsing fails
-    """
-    # TODO: Implement parsing logic
-    
-    item = {}
-    
-    try:
-        for line in lines:
-            line = line.strip()
-            
-            # Skip empty lines
-            if not line:
-                continue
-            
-            # Check for colon separator
-            if ':' not in line:
-                raise InvalidDataFormatError(f"Malformed line in item data: {line}")
-            
-            # Split on colon and strip whitespace
-            key, value = line.split(':', 1)
-            key = key.strip().lower()
-            value = value.strip()
-            
-            # Parse different field types
-            if key == 'item_id':
-                item['item_id'] = value
-            elif key == 'name':
-                item['name'] = value
-            elif key == 'type':
-                item['type'] = value.lower()
-            elif key == 'effect':
-                # Parse effect as stat:value pair
-                if ':' not in value:
-                    raise InvalidDataFormatError(f"Invalid effect format: {value}")
-                stat, stat_value = value.split(':', 1)
-                item['effect'] = {stat.strip(): int(stat_value.strip())}
-            elif key == 'cost':
-                item['cost'] = int(value)
-            elif key == 'description':
-                item['description'] = value
-            else:
-                raise InvalidDataFormatError(f"Unknown field in item: {key}")
-    
-    except ValueError as e:
-        raise InvalidDataFormatError(f"Could not convert value to correct type: {e}")
-    except InvalidDataFormatError:
-        raise
-    except Exception as e:
-        raise InvalidDataFormatError(f"Error parsing item block: {e}")
-    
-    return item
-
 
 # ============================================================================
 # TESTING
@@ -504,12 +494,26 @@ if __name__ == "__main__":
             'item_id': 'test_item',
             'name': 'Test Item',
             'type': 'weapon',
-            'effect': {'strength': 5},
+            'effect': 'strength:5',  # String format
             'cost': 100,
             'description': 'A test item'
         }
         validate_item_data(test_item)
-        print("✓ Item validation passed\n")
+        print("✓ Item validation passed (string effect)\n")
+    except InvalidDataFormatError as e:
+        print(f"✗ Item validation failed: {e}\n")
+    
+    try:
+        test_item_dict = {
+            'item_id': 'test_item2',
+            'name': 'Test Item 2',
+            'type': 'armor',
+            'effect': {'defense': 3},  # Dict format
+            'cost': 100,
+            'description': 'A test item'
+        }
+        validate_item_data(test_item_dict)
+        print("✓ Item validation passed (dict effect)\n")
     except InvalidDataFormatError as e:
         print(f"✗ Item validation failed: {e}\n")
     

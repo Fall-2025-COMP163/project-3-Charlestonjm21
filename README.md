@@ -149,3 +149,39 @@ Test files are provided for your learning but are protected. Modifying test file
 - Academic integrity investigation
 
 You can view tests to understand requirements, but any modifications will be automatically detected.
+
+
+## 🎮 Game Description
+
+Quest Chronicles is a text-based RPG where you create a character 
+and embark on an epic adventure. Battle enemies, complete quests 
+with prerequisite chains, manage your inventory, and progress 
+through an engaging combat system. Choose your class wisely—Warrior, 
+Mage, Rogue, or Cleric—each with unique strengths. Gain experience 
+to level up, collect powerful items, and tackle increasingly 
+challenging quests to become a legendary hero.
+
+## 🕹️ How to Play
+
+1. **Start the Game**: Run `main.py` from your project root
+2. **Create a Character**: Choose your name and class 
+   (Warrior, Mage, Rogue, or Cleric)
+3. **Main Menu Options**:
+   - **View Stats**: Check your health, level, experience, 
+     and class information
+   - **Inventory**: Manage items, use consumables, and equip 
+     weapons/armor
+   - **Quests**: Accept available quests, track active quests, 
+     and complete quests for rewards
+   - **Explore**: Battle random enemies appropriate to your level 
+     and earn experience and gold
+   - **Shop**: Buy and sell items to manage your resources
+   - **Save & Quit**: Save your progress and exit the game
+4. **Combat**: When you explore, you'll encounter enemies. Defeat 
+   them to gain experience and gold
+5. **Progress**: Complete quests in order (some quests require 
+   completing previous quests), level up by gaining experience, 
+   and equip better items to become stronger
+6. **Win Condition**: Complete all available quests and defeat 
+   the Dragon to become a legendary hero!
+   

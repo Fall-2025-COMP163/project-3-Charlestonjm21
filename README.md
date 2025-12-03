@@ -157,7 +157,7 @@ Quest Chronicles is a text-based RPG where you create a character
 and embark on an epic adventure. Battle enemies, complete quests 
 with prerequisite chains, manage your inventory, and progress 
 through an engaging combat system. Choose your class wisely—Warrior, 
-Mage, Rogue, or Cleric—each with unique strengths. Gain experience 
+Mage, Rogue, or Cleric each with unique strengths. Gain experience 
 to level up, collect powerful items, and tackle increasingly 
 challenging quests to become a legendary hero.
 
@@ -184,4 +184,7 @@ challenging quests to become a legendary hero.
    and equip better items to become stronger
 6. **Win Condition**: Complete all available quests and defeat 
    the Dragon to become a legendary hero!
-   
+
+## AI assistance
+
+I used Claude AI to help me debug errors in the quest_handler.py file and help me understand how to connect different files to make the game process as a whole.
